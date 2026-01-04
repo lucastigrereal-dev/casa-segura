@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  PROFESSIONAL
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum ProLevel {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum JobStatus {
+  CREATED
+  QUOTED
+  PENDING_PAYMENT
+  PAID
+  ASSIGNED
+  PRO_ACCEPTED
+  PRO_ON_WAY
+  IN_PROGRESS
+  PENDING_APPROVAL
+  COMPLETED
+  IN_GUARANTEE
+  CLOSED
+  CANCELLED
+  DISPUTED
+}
+
+model User {
+  id         String     @id @default(uuid())
+  email      String     @unique
+  phone      String     @unique
+  password   String
+  name       String
+  cpf        String?    @unique
+  role       Role       @default(CLIENT)
+  status     UserStatus @default(PENDING)
+  avatar_url String?
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+
+  addresses        Address[]
+  professional     Professional?
+  jobs_as_client   Job[]    @relation("ClientJobs")
+  jobs_as_pro      Job[]    @relation("ProJobs")
+  reviews_given    Review[] @relation("ReviewsGiven")
+  reviews_received Review[] @relation("ReviewsReceived")
+
+  @@map("users")
+}
+
+model Professional {
+  id      String @id @default(uuid())
+  user_id String @unique
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  cpf_verified     Boolean @default(false)
+  selfie_verified  Boolean @default(false)
+  address_verified Boolean @default(false)
+
+  level      ProLevel @default(BRONZE)
+  total_jobs Int      @default(0)
+  rating_avg Float    @default(0)
+
+  pix_key        String?
+  is_available   Boolean @default(true)
+  work_radius_km Int     @default(20)
+
+  specialties Specialty[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("professionals")
+}
+
+model Category {
+  id        String  @id @default(uuid())
+  name      String
+  slug      String  @unique
+  icon      String?
+  color     String?
+  is_active Boolean @default(true)
+  order     Int     @default(0)
+
+  missions    Mission[]
+  specialties Specialty[]
+
+  created_at DateTime @default(now())
+
+  @@map("categories")
+}
+
+model Mission {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String
+  category_id String
+  category    Category @relation(fields: [category_id], references: [id])
+
+  price_min     Int // centavos
+  price_max     Int // centavos
+  price_default Int // centavos
+
+  duration_min Int // minutos
+  duration_max Int // minutos
+
+  requires_photo Boolean   @default(true)
+  risk_level     RiskLevel @default(LOW)
+  is_active      Boolean   @default(true)
+
+  jobs Job[]
+
+  created_at DateTime @default(now())
+
+  @@map("missions")
+}
+
+model Specialty {
+  id            String         @id @default(uuid())
+  name          String
+  category_id   String
+  category      Category       @relation(fields: [category_id], references: [id])
+  professionals Professional[]
+
+  @@map("specialties")
+}
+
+model Address {
+  id      String @id @default(uuid())
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  label        String?
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  city         String
+  state        String  @default("RS")
+  zip_code     String
+
+  latitude  Float?
+  longitude Float?
+
+  is_default Boolean @default(false)
+
+  jobs       Job[]
+  created_at DateTime @default(now())
+
+  @@map("addresses")
+}
+
+model Job {
+  id   String @id @default(uuid())
+  code String @unique
+
+  client_id String
+  client    User   @relation("ClientJobs", fields: [client_id], references: [id])
+
+  pro_id String?
+  pro    User?   @relation("ProJobs", fields: [pro_id], references: [id])
+
+  mission_id String
+  mission    Mission @relation(fields: [mission_id], references: [id])
+
+  address_id String
+  address    Address @relation(fields: [address_id], references: [id])
+
+  status JobStatus @default(CREATED)
+
+  diagnosis_answers Json?
+  photos_before     String[]
+  photos_after      String[]
+  ai_diagnosis      Json?
+
+  price_estimated  Int
+  price_final      Int?
+  price_additional Int?
+
+  scheduled_date   DateTime?
+  scheduled_window String?
+
+  started_at      DateTime?
+  completed_at    DateTime?
+  guarantee_until DateTime?
+
+  review Review?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("jobs")
+}
+
+model Review {
+  id     String @id @default(uuid())
+  job_id String @unique
+  job    Job    @relation(fields: [job_id], references: [id])
+
+  reviewer_id String
+  reviewer    User   @relation("ReviewsGiven", fields: [reviewer_id], references: [id])
+
+  reviewed_id String
+  reviewed    User   @relation("ReviewsReceived", fields: [reviewed_id], references: [id])
+
+  rating_overall      Int
+  rating_punctuality  Int?
+  rating_quality      Int?
+  rating_friendliness Int?
+
+  comment String?
+
+  created_at DateTime @default(now())
+
+  @@map("reviews")
+}
