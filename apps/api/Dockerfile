@@ -14,10 +14,13 @@ COPY apps/api/ ./apps/api/
 # Install all dependencies
 RUN npm install
 
-# Generate Prisma client (this creates the types we need)
-RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
+# Build database package (generates Prisma client + compiles TypeScript)
+RUN npm run build --workspace=@casa-segura/database
 
-# Build the API (tsconfig.json has paths configured to resolve workspaces)
+# Build shared package
+RUN npm run build --workspace=@casa-segura/shared || true
+
+# Build the API
 RUN npm run build --workspace=@casa-segura/api
 
 # Production stage
@@ -28,7 +31,9 @@ WORKDIR /app
 # Copy necessary files
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/packages/database/dist ./packages/database/dist
+COPY --from=builder /app/packages/database/package.json ./packages/database/
+COPY --from=builder /app/packages/shared ./packages/shared
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/
 
@@ -38,4 +43,4 @@ ENV PORT=3333
 EXPOSE 3333
 
 # Start the application
-CMD ["node", "apps/api/dist/apps/api/src/main.js"]
+CMD ["node", "apps/api/dist/main.js"]

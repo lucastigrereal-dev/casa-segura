@@ -21,9 +21,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "paths": {
-      "@/*": ["src/*"],
-      "@casa-segura/database": ["../../packages/database/src/index.ts"],
-      "@casa-segura/shared": ["../../packages/shared/src/index.ts"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src/**/*"],
