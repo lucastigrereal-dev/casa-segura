@@ -2,17 +2,17 @@
   "name": "@casa-segura/shared",
   "version": "1.0.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "echo 'No build needed - using TypeScript sources directly'",
-    "dev": "echo 'No build needed'"
+    "build": "tsc",
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@casa-segura/database": "*"
