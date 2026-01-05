@@ -36,8 +36,9 @@ COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/
-# Install production dependencies (this will properly resolve local workspaces)
-RUN npm ci --omit=dev
+COPY --from=builder /app/node_modules ./node_modules
+# Remove old symlink references to workspaces
+RUN rm -rf ./node_modules/@casa-segura/database ./node_modules/@casa-segura/shared
 
 ENV NODE_ENV=production
 ENV PORT=3333
