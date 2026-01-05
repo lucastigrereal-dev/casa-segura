@@ -14,8 +14,11 @@ COPY apps/api/ ./apps/api/
 # Install all dependencies
 RUN npm install
 
-# Generate Prisma client
-RUN npm run db:generate
+# Build database package first (generates Prisma client + compiles TypeScript)
+RUN npm run build --workspace=@casa-segura/database
+
+# Build shared package if exists
+RUN npm run build --workspace=@casa-segura/shared || true
 
 # Build the API
 RUN npm run build --workspace=@casa-segura/api
