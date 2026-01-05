@@ -17,8 +17,8 @@
     "db:studio": "npm run db:studio --workspace=@casa-segura/database",
     "db:migrate": "npm run migrate --workspace=@casa-segura/database",
     "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
-        "postinstall": "npm run db:generate"
+    "docker:down": "docker-compose down",
+    "postinstall": "npm run db:generate"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
