@@ -30,13 +30,14 @@ WORKDIR /app
 
 # Copy necessary files
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
 COPY --from=builder /app/packages/database/package.json ./packages/database/
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/
+# Install production dependencies (this will properly resolve local workspaces)
+RUN npm ci --omit=dev
 
 ENV NODE_ENV=production
 ENV PORT=3333
