@@ -37,5 +37,5 @@ ENV PORT=3333
 
 EXPOSE 3333
 
-# Run migrations and start
-CMD ["sh", "-c", "npm run db:push && node apps/api/dist/apps/api/src/main.js"]
+# Start the application
+CMD ["node", "apps/api/dist/apps/api/src/main.js"]
