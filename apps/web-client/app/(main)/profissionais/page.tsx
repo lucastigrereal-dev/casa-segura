@@ -387,7 +387,9 @@ export default function ProfissionaisPage() {
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold truncate">{pro.user.name}</h3>
                           {isFullyVerified && (
-                            <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" title="Verificado" />
+                            <div title="Verificado">
+                              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            </div>
                           )}
                         </div>
 

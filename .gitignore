@@ -51,3 +51,4 @@ packages/database/prisma/*.db-journal
 *.tsbuildinfo
 .eslintcache
 .cache
+.vercel
