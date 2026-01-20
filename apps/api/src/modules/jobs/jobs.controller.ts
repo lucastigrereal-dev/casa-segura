@@ -56,6 +56,25 @@ export class JobsController {
     return this.jobsService.findAll(params);
   }
 
+  @Get('available')
+  @Roles(Role.PROFESSIONAL)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Chamados disponíveis para profissional' })
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'take', required: false })
+  @ApiQuery({ name: 'missionId', required: false })
+  @ApiQuery({ name: 'categoryId', required: false })
+  findAvailableJobs(
+    @CurrentUser('sub') userId: string,
+    @Query('skip') skip?: number,
+    @Query('take') take?: number,
+    @Query('missionId') missionId?: string,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    // Get professional by user_id
+    return this.jobsService.findAvailableJobs(userId, { skip, take, missionId, categoryId });
+  }
+
   @Get('stats')
   @Roles(Role.ADMIN)
   @UseGuards(RolesGuard)
@@ -76,6 +95,22 @@ export class JobsController {
       return this.jobsService.findAll({ proId: user.sub, skip, take, status });
     }
     return this.jobsService.findAll({ clientId: user.sub, skip, take, status });
+  }
+
+  @Get('my-pro-jobs')
+  @Roles(Role.PROFESSIONAL)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Meus jobs (profissional)' })
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'take', required: false })
+  @ApiQuery({ name: 'status', required: false, enum: JobStatus })
+  findMyProJobs(
+    @CurrentUser('sub') userId: string,
+    @Query('skip') skip?: number,
+    @Query('take') take?: number,
+    @Query('status') status?: JobStatus,
+  ) {
+    return this.jobsService.findMyProJobs(userId, { skip, take, status });
   }
 
   @Get(':id')
@@ -143,5 +178,28 @@ export class JobsController {
     @Body() data: { priceFinal: number; priceAdditional?: number },
   ) {
     return this.jobsService.updatePrice(id, data.priceFinal, data.priceAdditional);
+  }
+
+  @Post(':id/start')
+  @Roles(Role.PROFESSIONAL)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Profissional inicia o serviço' })
+  startJob(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.jobsService.startJob(id, userId);
+  }
+
+  @Post(':id/complete')
+  @Roles(Role.PROFESSIONAL)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Profissional conclui o serviço' })
+  completeJob(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @Body() data: { photos_after: string[] },
+  ) {
+    return this.jobsService.completeJob(id, userId, data);
   }
 }

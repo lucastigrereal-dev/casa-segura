@@ -49,7 +49,6 @@ export class ProfessionalServicesService {
       update: data,
       create: {
         professional_id: professionalId,
-        mission_id: data.mission_id,
         ...data,
       },
       include: {

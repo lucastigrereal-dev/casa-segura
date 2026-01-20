@@ -55,6 +55,58 @@ export class ProfessionalsController {
     return this.professionalsService.getStats();
   }
 
+  @Get('me/stats')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.PROFESSIONAL)
+  @UseGuards(RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Estatísticas do profissional atual' })
+  getMyStats(@CurrentUser('sub') userId: string) {
+    return this.professionalsService.getMyStats(userId);
+  }
+
+  @Get('me/earnings')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.PROFESSIONAL)
+  @UseGuards(RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Ganhos e extrato do profissional' })
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'take', required: false })
+  getMyEarnings(
+    @CurrentUser('sub') userId: string,
+    @Query('skip') skip?: number,
+    @Query('take') take?: number,
+  ) {
+    return this.professionalsService.getMyEarnings(userId, { skip, take });
+  }
+
+  @Patch('me/availability')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.PROFESSIONAL)
+  @UseGuards(RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Alterar disponibilidade do profissional' })
+  toggleAvailability(
+    @CurrentUser('sub') userId: string,
+    @Body('isAvailable') isAvailable: boolean,
+  ) {
+    return this.professionalsService.toggleAvailability(userId, isAvailable);
+  }
+
+  @Patch('me/radius')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.PROFESSIONAL)
+  @UseGuards(RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Alterar raio de atuação do profissional' })
+  updateRadius(
+    @CurrentUser('sub') userId: string,
+    @Body('work_radius_km') workRadiusKm: number,
+  ) {
+    return this.professionalsService.updateRadius(userId, workRadiusKm);
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

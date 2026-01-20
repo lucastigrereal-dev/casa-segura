@@ -217,6 +217,171 @@ export class JobsService {
     };
   }
 
+  async findAvailableJobs(professionalId: string, params?: {
+    skip?: number;
+    take?: number;
+    missionId?: string;
+    categoryId?: string;
+  }) {
+    const { skip = 0, take = 20 } = params || {};
+
+    // Get professional details including specialties and location
+    const professional = await this.prisma.professional.findUnique({
+      where: { id: professionalId },
+      include: {
+        user: { select: { id: true } },
+        specialties: {
+          select: { id: true, name: true, category_id: true },
+        },
+      },
+    });
+
+    if (!professional) {
+      throw new NotFoundException('Profissional não encontrado');
+    }
+
+    // Build query for available jobs
+    const where = {
+      status: { in: [JobStatus.PAID, JobStatus.PENDING_QUOTE] },
+      mission: {
+        category_id: {
+          in: professional.specialties.map((s) => s.category_id),
+        },
+      },
+      ...(params?.missionId && { mission_id: params.missionId }),
+      ...(params?.categoryId && { mission: { category_id: params.categoryId } }),
+    };
+
+    const jobs = await this.prisma.job.findMany({
+      where,
+      skip,
+      take,
+      orderBy: { created_at: 'desc' },
+      include: {
+        client: { select: { id: true, name: true, avatar_url: true } },
+        mission: { include: { category: true } },
+        address: true,
+      },
+    });
+
+    // Calculate distance for each job (simplified - in production use GIS library)
+    const jobsWithDistance = jobs.map((job) => ({
+      ...job,
+      distance_km: Math.random() * professional.work_radius_km, // Placeholder
+    }));
+
+    const total = await this.prisma.job.count({ where });
+
+    return {
+      data: jobsWithDistance,
+      meta: {
+        total,
+        page: Math.floor(skip / take) + 1,
+        limit: take,
+        totalPages: Math.ceil(total / take),
+      },
+    };
+  }
+
+  async startJob(jobId: string, professionalId: string) {
+    const job = await this.findById(jobId);
+
+    // Validate professional owns the job
+    if (job.pro_id !== professionalId) {
+      throw new ForbiddenException('Você não pode iniciar este job');
+    }
+
+    // Validate job status
+    if (job.status !== JobStatus.QUOTE_ACCEPTED) {
+      throw new ForbiddenException('Job não está no status correto para iniciar');
+    }
+
+    return this.prisma.job.update({
+      where: { id: jobId },
+      data: {
+        status: JobStatus.IN_PROGRESS,
+        started_at: new Date(),
+      },
+      include: {
+        client: { select: { id: true, name: true, email: true } },
+        pro: { select: { id: true, name: true, email: true } },
+        mission: true,
+        address: true,
+      },
+    });
+  }
+
+  async completeJob(jobId: string, professionalId: string, data: {
+    photos_after: string[];
+  }) {
+    const job = await this.findById(jobId);
+
+    // Validate professional owns the job
+    if (job.pro_id !== professionalId) {
+      throw new ForbiddenException('Você não pode completar este job');
+    }
+
+    // Validate job status
+    if (job.status !== JobStatus.IN_PROGRESS) {
+      throw new ForbiddenException('Job não está em andamento');
+    }
+
+    return this.prisma.job.update({
+      where: { id: jobId },
+      data: {
+        status: JobStatus.PENDING_APPROVAL,
+        photos_after: data.photos_after,
+        completed_at: new Date(),
+        guarantee_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      },
+      include: {
+        client: { select: { id: true, name: true, email: true } },
+        pro: { select: { id: true, name: true, email: true } },
+        mission: true,
+        address: true,
+      },
+    });
+  }
+
+  async findMyProJobs(professionalId: string, params?: {
+    skip?: number;
+    take?: number;
+    status?: JobStatus;
+  }) {
+    const { skip = 0, take = 20, status } = params || {};
+
+    const where = {
+      pro_id: professionalId,
+      ...(status && { status }),
+    };
+
+    const [jobs, total] = await Promise.all([
+      this.prisma.job.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { created_at: 'desc' },
+        include: {
+          client: { select: { id: true, name: true, avatar_url: true, phone: true } },
+          mission: { include: { category: true } },
+          address: true,
+          review: true,
+        },
+      }),
+      this.prisma.job.count({ where }),
+    ]);
+
+    return {
+      data: jobs,
+      meta: {
+        total,
+        page: Math.floor(skip / take) + 1,
+        limit: take,
+        totalPages: Math.ceil(total / take),
+      },
+    };
+  }
+
   private isValidStatusTransition(
     current: JobStatus,
     next: JobStatus,
@@ -226,7 +391,11 @@ export class JobsService {
       [JobStatus.CREATED]: [JobStatus.QUOTED, JobStatus.CANCELLED],
       [JobStatus.QUOTED]: [JobStatus.PENDING_PAYMENT, JobStatus.CANCELLED],
       [JobStatus.PENDING_PAYMENT]: [JobStatus.PAID, JobStatus.CANCELLED],
-      [JobStatus.PAID]: [JobStatus.ASSIGNED, JobStatus.CANCELLED],
+      [JobStatus.PAID]: [JobStatus.ASSIGNED, JobStatus.PENDING_QUOTE, JobStatus.CANCELLED],
+      [JobStatus.PENDING_QUOTE]: [JobStatus.QUOTE_SENT, JobStatus.CANCELLED],
+      [JobStatus.QUOTE_SENT]: [JobStatus.QUOTE_ACCEPTED, JobStatus.QUOTE_REJECTED],
+      [JobStatus.QUOTE_ACCEPTED]: [JobStatus.ASSIGNED, JobStatus.CANCELLED],
+      [JobStatus.QUOTE_REJECTED]: [JobStatus.CANCELLED],
       [JobStatus.ASSIGNED]: [JobStatus.PRO_ACCEPTED, JobStatus.CANCELLED],
       [JobStatus.PRO_ACCEPTED]: [JobStatus.PRO_ON_WAY, JobStatus.CANCELLED],
       [JobStatus.PRO_ON_WAY]: [JobStatus.IN_PROGRESS, JobStatus.CANCELLED],
