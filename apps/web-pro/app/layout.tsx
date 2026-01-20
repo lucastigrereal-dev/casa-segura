@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { AuthProvider } from '@/contexts/auth-context';
 
 export const metadata: Metadata = {
   title: 'Casa Segura Pro',
@@ -13,8 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className="bg-pro-primary text-pro-text">
-        {children}
+      <body className="bg-[#1a1a2e] text-gray-100">
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
