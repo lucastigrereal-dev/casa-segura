@@ -109,3 +109,24 @@ export const addressesApi = {
   setDefault: (id: string, token: string) =>
     api.patch(`/addresses/${id}/default`, {}, { token }),
 };
+
+// Professionals endpoints
+export const professionalsApi = {
+  list: (params?: { categoryId?: string; city?: string; page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.categoryId) searchParams.append('categoryId', params.categoryId);
+    if (params?.city) searchParams.append('city', params.city);
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    const query = searchParams.toString();
+    return api.get(`/professionals${query ? `?${query}` : ''}`);
+  },
+  getById: (id: string) => api.get(`/professionals/${id}`),
+  register: (data: unknown, token: string) => api.post('/professionals/register', data, { token }),
+};
+
+// Reviews endpoints
+export const reviewsApi = {
+  create: (data: unknown, token: string) => api.post('/reviews', data, { token }),
+  getByProfessional: (userId: string) => api.get(`/reviews/professional/${userId}`),
+};

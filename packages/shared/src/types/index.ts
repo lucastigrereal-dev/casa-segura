@@ -8,6 +8,8 @@ export type {
   Address,
   Job,
   Review,
+  Quote,
+  ProfessionalService,
 } from '@casa-segura/database';
 
 export {
@@ -16,6 +18,7 @@ export {
   ProLevel,
   RiskLevel,
   JobStatus,
+  QuoteStatus,
 } from '@casa-segura/database';
 
 // API Response types
@@ -71,6 +74,63 @@ export interface CreateJobDto {
   scheduled_window?: string;
   diagnosis_answers?: Record<string, unknown>;
   photos_before?: string[];
+}
+
+// Quote types
+export interface CreateQuoteDto {
+  job_id: string;
+  amount: number;
+  notes?: string;
+  available_dates: string[];
+}
+
+export interface UpdateQuoteDto {
+  amount?: number;
+  notes?: string;
+  available_dates?: string[];
+}
+
+// Professional Service types
+export interface CreateProfessionalServiceDto {
+  mission_id: string;
+  price_min: number;
+  price_max: number;
+  description?: string;
+}
+
+export interface UpdateProfessionalServiceDto {
+  price_min?: number;
+  price_max?: number;
+  description?: string;
+  is_active?: boolean;
+}
+
+// Professional Stats
+export interface ProfessionalStats {
+  earnings_month: number;
+  earnings_week: number;
+  pending_quotes: number;
+  acceptance_rate: number;
+  rating_avg: number;
+  total_jobs: number;
+  earnings_last_7_days: Array<{
+    date: string;
+    amount: number;
+  }>;
+}
+
+export interface ProfessionalEarnings {
+  available_balance: number;
+  total_earnings_month: number;
+  platform_fee_rate: number;
+  transactions: Array<{
+    id: string;
+    type: 'EARNING' | 'FEE' | 'WITHDRAWAL';
+    amount: number;
+    job_code?: string;
+    date: Date;
+    description: string;
+  }>;
 }
 
 // Dashboard stats

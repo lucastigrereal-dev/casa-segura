@@ -1,4 +1,4 @@
-import { PrismaClient, Role, UserStatus, RiskLevel } from '@prisma/client';
+import { PrismaClient, Role, UserStatus, RiskLevel, JobStatus, QuoteStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -264,14 +264,324 @@ async function main() {
     { name: 'Aquecimento', category_slug: 'clima-frio' },
   ];
 
+  const createdSpecialties: Record<string, string> = {};
+
+  // Get existing specialties first
+  const existingSpecialties = await prisma.specialty.findMany();
+  for (const spec of existingSpecialties) {
+    createdSpecialties[spec.name] = spec.id;
+  }
+
   for (const specialty of specialties) {
-    await prisma.specialty.create({
-      data: {
-        name: specialty.name,
-        category_id: createdCategories[specialty.category_slug],
+    if (!createdSpecialties[specialty.name]) {
+      const created = await prisma.specialty.create({
+        data: {
+          name: specialty.name,
+          category_id: createdCategories[specialty.category_slug],
+        },
+      });
+      createdSpecialties[specialty.name] = created.id;
+      console.log(`Created specialty: ${specialty.name}`);
+    } else {
+      console.log(`Specialty already exists: ${specialty.name}`);
+    }
+  }
+
+  // Create Professional Users
+  const clientPassword = await bcrypt.hash('123456', 10);
+
+  const professionals = [
+    {
+      email: 'joao.eletricista@email.com',
+      phone: '54999001001',
+      name: 'João da Silva',
+      specialties: ['Instalações Elétricas Residenciais', 'Manutenção de Quadros Elétricos'],
+      level: 'GOLD' as const,
+      rating_avg: 4.8,
+      total_jobs: 127,
+      work_radius_km: 25,
+      cpf_verified: true,
+      selfie_verified: true,
+      address_verified: true,
+    },
+    {
+      email: 'maria.encanadora@email.com',
+      phone: '54999001002',
+      name: 'Maria Santos',
+      specialties: ['Encanamento Residencial', 'Desentupimento'],
+      level: 'PLATINUM' as const,
+      rating_avg: 4.9,
+      total_jobs: 203,
+      work_radius_km: 30,
+      cpf_verified: true,
+      selfie_verified: true,
+      address_verified: true,
+    },
+    {
+      email: 'pedro.pintor@email.com',
+      phone: '54999001003',
+      name: 'Pedro Oliveira',
+      specialties: ['Pintura Interna', 'Pintura Externa'],
+      level: 'SILVER' as const,
+      rating_avg: 4.5,
+      total_jobs: 45,
+      work_radius_km: 20,
+      cpf_verified: true,
+      selfie_verified: true,
+      address_verified: false,
+    },
+    {
+      email: 'ana.montagem@email.com',
+      phone: '54999001004',
+      name: 'Ana Rodrigues',
+      specialties: ['Montagem de Móveis', 'Instalações em Geral'],
+      level: 'BRONZE' as const,
+      rating_avg: 4.2,
+      total_jobs: 18,
+      work_radius_km: 15,
+      cpf_verified: true,
+      selfie_verified: false,
+      address_verified: false,
+    },
+    {
+      email: 'carlos.clima@email.com',
+      phone: '54999001005',
+      name: 'Carlos Ferreira',
+      specialties: ['Climatização', 'Aquecimento'],
+      level: 'GOLD' as const,
+      rating_avg: 4.7,
+      total_jobs: 89,
+      work_radius_km: 35,
+      cpf_verified: true,
+      selfie_verified: true,
+      address_verified: true,
+    },
+  ];
+
+  for (const pro of professionals) {
+    const { specialties: specialtyNames, level, rating_avg, total_jobs, work_radius_km, cpf_verified, selfie_verified, address_verified, ...userData } = pro;
+
+    const user = await prisma.user.upsert({
+      where: { email: pro.email },
+      update: {},
+      create: {
+        ...userData,
+        password: clientPassword,
+        role: Role.PROFESSIONAL,
+        status: UserStatus.ACTIVE,
       },
     });
-    console.log(`Created specialty: ${specialty.name}`);
+
+    await prisma.professional.upsert({
+      where: { user_id: user.id },
+      update: {
+        level,
+        rating_avg,
+        total_jobs,
+        work_radius_km,
+        cpf_verified,
+        selfie_verified,
+        address_verified,
+        specialties: {
+          connect: specialtyNames.map(name => ({ id: createdSpecialties[name] })),
+        },
+      },
+      create: {
+        user_id: user.id,
+        level,
+        rating_avg,
+        total_jobs,
+        work_radius_km,
+        cpf_verified,
+        selfie_verified,
+        address_verified,
+        specialties: {
+          connect: specialtyNames.map(name => ({ id: createdSpecialties[name] })),
+        },
+      },
+    });
+
+    console.log(`Created professional: ${pro.name}`);
+  }
+
+  // Create a test client user
+  const client = await prisma.user.upsert({
+    where: { email: 'cliente@email.com' },
+    update: {},
+    create: {
+      email: 'cliente@email.com',
+      phone: '54999002001',
+      name: 'Cliente Teste',
+      password: clientPassword,
+      role: Role.CLIENT,
+      status: UserStatus.ACTIVE,
+    },
+  });
+  console.log(`Created client: ${client.email}`);
+
+  // Create address for client
+  const clientAddress = await prisma.address.create({
+    data: {
+      user_id: client.id,
+      label: 'Casa Principal',
+      street: 'Rua A',
+      number: '123',
+      neighborhood: 'Centro',
+      city: 'Caxias do Sul',
+      state: 'RS',
+      zip_code: '95010-000',
+      latitude: -29.1668,
+      longitude: -51.1822,
+      is_default: true,
+    },
+  });
+  console.log(`Created address for client`);
+
+  // Get all missions to create ProfessionalServices
+  const allMissions = await prisma.mission.findMany();
+  const missionsBySlug: Record<string, string> = {};
+  for (const m of allMissions) {
+    missionsBySlug[m.slug] = m.id;
+  }
+
+  // Create ProfessionalServices (services menu) for each professional
+  const professionalsData = await prisma.professional.findMany({ include: { user: true } });
+
+  for (const pro of professionalsData) {
+    // João (Eletricista)
+    if (pro.user.email === 'joao.eletricista@email.com') {
+      await prisma.professionalService.upsert({
+        where: { professional_id_mission_id: { professional_id: pro.id, mission_id: missionsBySlug['troca-tomada'] } },
+        update: {},
+        create: {
+          professional_id: pro.id,
+          mission_id: missionsBySlug['troca-tomada'],
+          price_min: 8000,
+          price_max: 15000,
+          description: 'Troca de tomada simples com qualidade premium',
+          is_active: true,
+        },
+      });
+
+      await prisma.professionalService.upsert({
+        where: { professional_id_mission_id: { professional_id: pro.id, mission_id: missionsBySlug['instalacao-luminaria'] } },
+        update: {},
+        create: {
+          professional_id: pro.id,
+          mission_id: missionsBySlug['instalacao-luminaria'],
+          price_min: 15000,
+          price_max: 30000,
+          description: 'Instalação de luminária com garantia',
+          is_active: true,
+        },
+      });
+    }
+
+    // Maria (Encanadora)
+    if (pro.user.email === 'maria.encanadora@email.com') {
+      await prisma.professionalService.upsert({
+        where: { professional_id_mission_id: { professional_id: pro.id, mission_id: missionsBySlug['desentupimento-pia'] } },
+        update: {},
+        create: {
+          professional_id: pro.id,
+          mission_id: missionsBySlug['desentupimento-pia'],
+          price_min: 12000,
+          price_max: 25000,
+          description: 'Desentupimento com equipamento profissional',
+          is_active: true,
+        },
+      });
+    }
+
+    // Pedro (Pintor)
+    if (pro.user.email === 'pedro.pintor@email.com') {
+      await prisma.professionalService.upsert({
+        where: { professional_id_mission_id: { professional_id: pro.id, mission_id: missionsBySlug['pintura-parede'] } },
+        update: {},
+        create: {
+          professional_id: pro.id,
+          mission_id: missionsBySlug['pintura-parede'],
+          price_min: 30000,
+          price_max: 60000,
+          description: 'Pintura de parede com acabamento profissional',
+          is_active: true,
+        },
+      });
+    }
+  }
+
+  console.log(`Created professional services`);
+
+  // Create test Jobs with PENDING_QUOTE status
+  const joaoUser = professionalsData.find(p => p.user.email === 'joao.eletricista@email.com')?.user;
+  const mariaUser = professionalsData.find(p => p.user.email === 'maria.encanadora@email.com')?.user;
+
+  if (joaoUser && mariaUser) {
+    // Job 1 - Awaiting quote from João
+    const job1 = await prisma.job.create({
+      data: {
+        code: `CS-${Date.now()}-001`,
+        client_id: client.id,
+        mission_id: missionsBySlug['troca-tomada'],
+        address_id: clientAddress.id,
+        status: JobStatus.PENDING_QUOTE,
+        diagnosis_answers: {
+          tipo_tomada: 'dupla',
+          local: 'sala',
+        },
+        photos_before: ['https://picsum.photos/800/600?random=1'],
+        price_estimated: 10000,
+        scheduled_date: new Date('2025-01-25'),
+        scheduled_window: 'Tarde',
+      },
+    });
+    console.log(`Created job 1 (pending quote)`);
+
+    // Job 2 - Awaiting quote from Maria
+    const job2 = await prisma.job.create({
+      data: {
+        code: `CS-${Date.now()}-002`,
+        client_id: client.id,
+        mission_id: missionsBySlug['desentupimento-pia'],
+        address_id: clientAddress.id,
+        status: JobStatus.PENDING_QUOTE,
+        diagnosis_answers: {
+          local: 'cozinha',
+          entupimento: 'total',
+        },
+        photos_before: ['https://picsum.photos/800/600?random=2'],
+        price_estimated: 12000,
+        scheduled_date: new Date('2025-01-26'),
+        scheduled_window: 'Manhã',
+      },
+    });
+    console.log(`Created job 2 (pending quote)`);
+
+    // Create Quotes for Job 1 from João
+    await prisma.quote.create({
+      data: {
+        job_id: job1.id,
+        professional_id: joaoUser.id,
+        amount: 12000,
+        notes: 'Troca com material de qualidade premium. Garanto por 1 ano.',
+        available_dates: ['2025-01-25T14:00', '2025-01-26T09:00', '2025-01-27T14:00'],
+        status: QuoteStatus.PENDING,
+      },
+    });
+    console.log(`Created quote for job 1 from João`);
+
+    // Create Quotes for Job 2 from Maria
+    await prisma.quote.create({
+      data: {
+        job_id: job2.id,
+        professional_id: mariaUser.id,
+        amount: 15000,
+        notes: 'Vou usar equipamento de alta pressão. Problema resolvido garantido!',
+        available_dates: ['2025-01-26T09:00', '2025-01-27T10:00'],
+        status: QuoteStatus.PENDING,
+      },
+    });
+    console.log(`Created quote for job 2 from Maria`);
   }
 
   console.log('Seeding completed!');

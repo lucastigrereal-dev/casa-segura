@@ -38,6 +38,10 @@ enum JobStatus {
   QUOTED
   PENDING_PAYMENT
   PAID
+  PENDING_QUOTE
+  QUOTE_SENT
+  QUOTE_ACCEPTED
+  QUOTE_REJECTED
   ASSIGNED
   PRO_ACCEPTED
   PRO_ON_WAY
@@ -48,6 +52,13 @@ enum JobStatus {
   CLOSED
   CANCELLED
   DISPUTED
+}
+
+enum QuoteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }
 
 model User {
@@ -69,6 +80,7 @@ model User {
   jobs_as_pro      Job[]    @relation("ProJobs")
   reviews_given    Review[] @relation("ReviewsGiven")
   reviews_received Review[] @relation("ReviewsReceived")
+  quotes_sent      Quote[]  @relation("ProfessionalQuotes")
 
   @@map("users")
 }
@@ -91,6 +103,7 @@ model Professional {
   work_radius_km Int     @default(20)
 
   specialties Specialty[]
+  services    ProfessionalService[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -135,6 +148,7 @@ model Mission {
   is_active      Boolean   @default(true)
 
   jobs Job[]
+  professional_services ProfessionalService[]
 
   created_at DateTime @default(now())
 
@@ -211,6 +225,7 @@ model Job {
   guarantee_until DateTime?
 
   review Review?
+  quotes Quote[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -239,4 +254,42 @@ model Review {
   created_at DateTime @default(now())
 
   @@map("reviews")
+}
+
+model Quote {
+  id              String      @id @default(uuid())
+  job_id          String
+  job             Job         @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  professional_id String
+  professional    User        @relation("ProfessionalQuotes", fields: [professional_id], references: [id])
+
+  amount          Int         // Valor em centavos
+  notes           String?     // Observações do profissional
+  available_dates String[]    // Datas disponíveis (JSON array de strings)
+
+  status          QuoteStatus @default(PENDING)
+
+  created_at      DateTime    @default(now())
+  responded_at    DateTime?   // Quando o cliente respondeu
+
+  @@map("quotes")
+}
+
+model ProfessionalService {
+  id              String       @id @default(uuid())
+  professional_id String
+  professional    Professional @relation(fields: [professional_id], references: [id], onDelete: Cascade)
+  mission_id      String
+  mission         Mission      @relation(fields: [mission_id], references: [id])
+
+  price_min       Int          // Preço mínimo que cobra (centavos)
+  price_max       Int          // Preço máximo (centavos)
+  description     String?      // Observações sobre o serviço
+  is_active       Boolean      @default(true)
+
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  @@unique([professional_id, mission_id])
+  @@map("professional_services")
 }

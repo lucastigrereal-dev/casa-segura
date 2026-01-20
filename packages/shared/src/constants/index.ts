@@ -1,10 +1,14 @@
-import { JobStatus, ProLevel, RiskLevel, Role, UserStatus } from '@casa-segura/database';
+import { JobStatus, ProLevel, RiskLevel, Role, UserStatus, QuoteStatus } from '@casa-segura/database';
 
 export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   CREATED: 'Criado',
   QUOTED: 'Orçado',
   PENDING_PAYMENT: 'Aguardando Pagamento',
   PAID: 'Pago',
+  PENDING_QUOTE: 'Aguardando Orçamento',
+  QUOTE_SENT: 'Orçamento Recebido',
+  QUOTE_ACCEPTED: 'Orçamento Aceito',
+  QUOTE_REJECTED: 'Orçamento Recusado',
   ASSIGNED: 'Atribuído',
   PRO_ACCEPTED: 'Aceito pelo Profissional',
   PRO_ON_WAY: 'Profissional a Caminho',
@@ -22,6 +26,10 @@ export const JOB_STATUS_COLORS: Record<JobStatus, string> = {
   QUOTED: 'bg-blue-100 text-blue-800',
   PENDING_PAYMENT: 'bg-yellow-100 text-yellow-800',
   PAID: 'bg-green-100 text-green-800',
+  PENDING_QUOTE: 'bg-yellow-100 text-yellow-800',
+  QUOTE_SENT: 'bg-blue-100 text-blue-800',
+  QUOTE_ACCEPTED: 'bg-green-100 text-green-800',
+  QUOTE_REJECTED: 'bg-red-100 text-red-800',
   ASSIGNED: 'bg-purple-100 text-purple-800',
   PRO_ACCEPTED: 'bg-indigo-100 text-indigo-800',
   PRO_ON_WAY: 'bg-cyan-100 text-cyan-800',
@@ -96,6 +104,25 @@ export const SERRA_GAUCHA_CITIES = [
   'Gramado',
   'Canela',
 ] as const;
+
+// Quote Status
+export const QUOTE_STATUS_LABELS: Record<QuoteStatus, string> = {
+  PENDING: 'Aguardando Cliente',
+  ACCEPTED: 'Aceito',
+  REJECTED: 'Recusado',
+  EXPIRED: 'Expirado',
+};
+
+export const QUOTE_STATUS_COLORS: Record<QuoteStatus, string> = {
+  PENDING: 'bg-yellow-100 text-yellow-800',
+  ACCEPTED: 'bg-green-100 text-green-800',
+  REJECTED: 'bg-red-100 text-red-800',
+  EXPIRED: 'bg-gray-100 text-gray-800',
+};
+
+// Platform Configuration
+export const PLATFORM_FEE_RATE = 0.20; // 20% commission
+export const QUOTE_EXPIRY_DAYS = 7;
 
 // App config
 export const APP_CONFIG = {

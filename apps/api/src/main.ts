@@ -22,6 +22,7 @@ async function bootstrap() {
     origin: [
       configService.get<string>('WEB_CLIENT_URL', 'http://localhost:3000'),
       configService.get<string>('WEB_ADMIN_URL', 'http://localhost:3001'),
+      configService.get<string>('WEB_PRO_URL', 'http://localhost:3002'),
     ],
     credentials: true,
   });
@@ -55,6 +56,8 @@ async function bootstrap() {
     .addTag('jobs', 'Chamados')
     .addTag('addresses', 'Endereços')
     .addTag('reviews', 'Avaliações')
+    .addTag('quotes', 'Orçamentos')
+    .addTag('professional-services', 'Serviços Profissionais')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

@@ -12,6 +12,8 @@ import { MissionsModule } from './modules/missions/missions.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { QuotesModule } from './modules/quotes/quotes.module';
+import { ProfessionalServicesModule } from './modules/professional-services/professional-services.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -46,6 +48,8 @@ import { HealthController } from './health.controller';
     JobsModule,
     AddressesModule,
     ReviewsModule,
+    QuotesModule,
+    ProfessionalServicesModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -119,8 +119,8 @@ export class ProfessionalsService {
     const [data, total] = await Promise.all([
       this.prisma.professional.findMany({
         where,
-        skip,
-        take,
+        skip: skip || 0,
+        take: take || 20,
         orderBy: { rating_avg: 'desc' },
         include: {
           user: {
@@ -133,7 +133,9 @@ export class ProfessionalsService {
               status: true,
             },
           },
-          specialties: true,
+          specialties: {
+            include: { category: true },
+          },
         },
       }),
       this.prisma.professional.count({ where }),
