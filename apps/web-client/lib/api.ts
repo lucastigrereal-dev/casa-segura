@@ -14,7 +14,7 @@ class ApiClient {
   private async request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const { token, headers: customHeaders, ...fetchOptions } = options;
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...customHeaders,
     };
