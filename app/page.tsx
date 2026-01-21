@@ -1,18 +1,11 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
 export default function Home() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.push('/');
-  }, [router]);
-
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <p>Redirecionando...</p>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <h1>🏠 Casa Segura Pro</h1>
+      <p>App está funcionando!</p>
+      <a href="/login" style={{ color: 'blue', textDecoration: 'underline' }}>
+        Ir para Login
+      </a>
     </div>
   );
 }
