@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { BarChart3, FileText, Home, LogOut, Menu, Settings, User, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { ProtectedPage } from '@/components/protected-page';
 
 export default function DashboardLayout({
   children,
@@ -24,8 +23,7 @@ export default function DashboardLayout({
   ];
 
   return (
-    <ProtectedPage>
-      <div className="flex h-screen bg-[#1a1a2e]">
+    <div className="flex h-screen bg-[#1a1a2e]">
         {/* Sidebar */}
         <aside
           className={`${
@@ -84,6 +82,5 @@ export default function DashboardLayout({
           </main>
         </div>
       </div>
-    </ProtectedPage>
   );
 }
