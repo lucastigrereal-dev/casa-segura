@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build --workspace=@casa-segura/web-pro",
   "outputDirectory": "apps/web-pro/.next",
   "installCommand": "npm install"
 }
