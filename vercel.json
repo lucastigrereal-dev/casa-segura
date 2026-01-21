@@ -1,4 +1,5 @@
 {
   "buildCommand": "npm install --legacy-peer-deps && npm run build --workspace=@casa-segura/web-pro",
-  "installCommand": "npm install --legacy-peer-deps"
+  "installCommand": "npm install --legacy-peer-deps",
+  "outputDirectory": "apps/web-pro/.next/standalone"
 }
