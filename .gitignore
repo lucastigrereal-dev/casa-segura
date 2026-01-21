@@ -53,3 +53,8 @@ packages/database/prisma/*.db-journal
 .cache
 .vercel
 .env*.local
+
+# Root-level symlinks/copies from apps/web-pro (for Vercel deployment)
+# These are generated during build, not tracked in git
+/app/.next
+*.local.js
