@@ -22,6 +22,7 @@
     "db:migrate": "npm run migrate --workspace=@casa-segura/database",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
+    "build:vercel": "npm run build --workspace=@casa-segura/web-pro && cp -r apps/web-pro/{app,.next,public,next.config.js,tsconfig.json} . 2>/dev/null || true",
     "postinstall": "npm run db:generate"
   },
   "devDependencies": {
