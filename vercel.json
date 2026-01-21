@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
+  "buildCommand": "cd apps/web-pro && npm run build",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
-  "root": "apps/web-pro"
+  "root": "apps/web-pro",
+  "outputDirectory": "apps/web-pro/.next"
 }
