@@ -52,3 +52,4 @@ packages/database/prisma/*.db-journal
 .eslintcache
 .cache
 .vercel
+.env*.local
