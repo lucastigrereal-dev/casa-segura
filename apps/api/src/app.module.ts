@@ -14,6 +14,7 @@ import { AddressesModule } from './modules/addresses/addresses.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { QuotesModule } from './modules/quotes/quotes.module';
 import { ProfessionalServicesModule } from './modules/professional-services/professional-services.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -50,6 +51,7 @@ import { HealthController } from './health.controller';
     ReviewsModule,
     QuotesModule,
     ProfessionalServicesModule,
+    PaymentsModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -82,6 +82,13 @@ model User {
   reviews_received Review[] @relation("ReviewsReceived")
   quotes_sent      Quote[]  @relation("ProfessionalQuotes")
 
+  // Payment relations
+  refunds_requested    Refund[]      @relation("RefundsRequested")
+  refunds_approved     Refund[]      @relation("RefundsApproved")
+  withdrawals_approved Withdrawal[]  @relation("WithdrawalsApproved")
+  transactions         Transaction[]
+  balance              Balance?
+
   @@map("users")
 }
 
@@ -104,6 +111,7 @@ model Professional {
 
   specialties Specialty[]
   services    ProfessionalService[]
+  withdrawals Withdrawal[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -227,6 +235,10 @@ model Job {
   review Review?
   quotes Quote[]
 
+  // Payment relations
+  payment      Payment?
+  transactions Transaction[]
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -292,4 +304,175 @@ model ProfessionalService {
 
   @@unique([professional_id, mission_id])
   @@map("professional_services")
+}
+
+// ============================================
+// PAYMENT SYSTEM ENUMS
+// ============================================
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+}
+
+enum TransactionType {
+  PAYMENT
+  SPLIT_PROFESSIONAL
+  SPLIT_PLATFORM
+  REFUND
+  WITHDRAWAL
+  FEE
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+// ============================================
+// PAYMENT SYSTEM MODELS
+// ============================================
+
+model Payment {
+  id                 String        @id @default(uuid())
+  job_id             String        @unique
+  job                Job           @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  amount             Int           // centavos
+  method             PaymentMethod
+  status             PaymentStatus @default(PENDING)
+  gateway_payment_id String?       @unique
+  gateway_provider   String?
+  gateway_response   Json?
+  paid_at            DateTime?
+  expires_at         DateTime?
+  qr_code            String?
+  qr_code_base64     String?
+  installments       Int           @default(1)
+  installment_amount Int?
+  splits             PaymentSplit[]
+  refunds            Refund[]
+  transactions       Transaction[]
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+
+  @@index([job_id])
+  @@index([gateway_payment_id])
+  @@index([status])
+  @@map("payments")
+}
+
+model PaymentSplit {
+  id             String   @id @default(uuid())
+  payment_id     String
+  payment        Payment  @relation(fields: [payment_id], references: [id], onDelete: Cascade)
+  recipient_type String   // "PROFESSIONAL" or "PLATFORM"
+  recipient_id   String?
+  amount         Int      // centavos
+  percentage     Float
+  status         String   @default("PENDING")
+  held_until     DateTime?
+  released_at    DateTime?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([payment_id])
+  @@index([recipient_id])
+  @@map("payment_splits")
+}
+
+model Refund {
+  id                String   @id @default(uuid())
+  payment_id        String
+  payment           Payment  @relation(fields: [payment_id], references: [id], onDelete: Cascade)
+  amount            Int
+  reason            String
+  status            String   @default("PENDING")
+  gateway_refund_id String?  @unique
+  gateway_response  Json?
+  requested_by_id   String
+  requested_by      User     @relation("RefundsRequested", fields: [requested_by_id], references: [id])
+  approved_by_id    String?
+  approved_by       User?    @relation("RefundsApproved", fields: [approved_by_id], references: [id])
+  requested_at      DateTime @default(now())
+  approved_at       DateTime?
+  completed_at      DateTime?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  @@index([payment_id])
+  @@map("refunds")
+}
+
+model Withdrawal {
+  id                  String           @id @default(uuid())
+  professional_id     String
+  professional        Professional     @relation(fields: [professional_id], references: [id])
+  amount              Int
+  pix_key             String
+  status              WithdrawalStatus @default(PENDING)
+  approved_by_id      String?
+  approved_by         User?            @relation("WithdrawalsApproved", fields: [approved_by_id], references: [id])
+  rejection_reason    String?
+  gateway_transfer_id String?          @unique
+  gateway_response    Json?
+  requested_at        DateTime         @default(now())
+  approved_at         DateTime?
+  processed_at        DateTime?
+  completed_at        DateTime?
+  created_at          DateTime         @default(now())
+  updated_at          DateTime         @updatedAt
+
+  @@index([professional_id])
+  @@index([status])
+  @@map("withdrawals")
+}
+
+model Transaction {
+  id             String          @id @default(uuid())
+  user_id        String
+  user           User            @relation(fields: [user_id], references: [id])
+  type           TransactionType
+  amount         Int
+  balance_before Int
+  balance_after  Int
+  payment_id     String?
+  payment        Payment?        @relation(fields: [payment_id], references: [id])
+  job_id         String?
+  job            Job?            @relation(fields: [job_id], references: [id])
+  description    String
+  metadata       Json?
+  created_at     DateTime        @default(now())
+
+  @@index([user_id])
+  @@index([type])
+  @@index([created_at])
+  @@map("transactions")
+}
+
+model Balance {
+  id              String   @id @default(uuid())
+  user_id         String   @unique
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  available       Int      @default(0)
+  held            Int      @default(0)
+  total_earned    Int      @default(0)
+  total_withdrawn Int      @default(0)
+  updated_at      DateTime @updatedAt
+
+  @@map("balances")
 }

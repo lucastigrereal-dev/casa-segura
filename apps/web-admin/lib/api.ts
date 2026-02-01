@@ -228,3 +228,16 @@ export const dashboardApi = {
   getStats: () => api.get<DashboardStats>('/dashboard/stats'),
   getRecentJobs: (limit = 5) => api.get<Job[]>(`/dashboard/recent-jobs?limit=${limit}`),
 };
+
+export const paymentsApi = {
+  listWithdrawals: (params?: { skip?: number; take?: number; status?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.skip) query.set('skip', String(params.skip));
+    if (params?.take) query.set('take', String(params.take));
+    if (params?.status) query.set('status', params.status);
+    return api.get<{ data: any[]; total: number }>(`/payments/withdrawals?${query}`);
+  },
+  approveWithdrawal: (id: string, data: { approve: boolean; rejection_reason?: string }) =>
+    api.patch(`/payments/withdrawals/${id}/approve`, data),
+  getFinancialStats: () => api.get<any>('/payments/stats/platform'),
+};

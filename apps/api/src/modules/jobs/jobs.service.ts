@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JobStatus, Role, Prisma } from '@casa-segura/database';
 import { generateJobCode } from '@casa-segura/shared';
+import { PaymentsService } from '../payments/payments.service';
 
 interface CreateJobData {
   client_id: string;
@@ -15,7 +16,11 @@ interface CreateJobData {
 
 @Injectable()
 export class JobsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => PaymentsService))
+    private readonly paymentsService: PaymentsService,
+  ) {}
 
   async create(data: CreateJobData) {
     const mission = await this.prisma.mission.findUnique({
@@ -414,5 +419,31 @@ export class JobsService {
     }
 
     return transitions[current]?.includes(next) || false;
+  }
+
+  async approveJobCompletion(jobId: string, clientId: string) {
+    const job = await this.findById(jobId);
+
+    if (job.client_id !== clientId) {
+      throw new ForbiddenException('Apenas o cliente pode aprovar a conclusão');
+    }
+
+    if (job.status !== JobStatus.PENDING_APPROVAL) {
+      throw new BadRequestException('Job não está aguardando aprovação');
+    }
+
+    // Update job status to completed
+    const updated = await this.prisma.job.update({
+      where: { id: jobId },
+      data: {
+        status: JobStatus.COMPLETED,
+        completed_at: new Date(),
+      },
+    });
+
+    // Release payment escrow (80% to professional)
+    await this.paymentsService.releaseEscrow(jobId);
+
+    return updated;
   }
 }

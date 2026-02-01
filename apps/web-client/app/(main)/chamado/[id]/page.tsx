@@ -458,6 +458,15 @@ export default function ChamadoPage() {
             </div>
 
             {/* Actions based on status */}
+            {job.status === 'QUOTE_ACCEPTED' && (
+              <Link href={`/chamado/${job.id}/pagamento`}>
+                <Button size="lg" variant="primary">
+                  <CreditCard className="h-5 w-5 mr-2" />
+                  Pagar Agora
+                </Button>
+              </Link>
+            )}
+
             {job.status === 'PENDING_APPROVAL' && (
               <Button size="lg" onClick={() => {
                 // TODO: Implementar aprovação

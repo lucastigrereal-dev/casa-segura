@@ -199,3 +199,25 @@ export const quotesApi = {
     return apiCall('PATCH', `/quotes/${quoteId}/reject`, token, { reason });
   },
 };
+
+export const paymentsApi = {
+  getMyBalance: async (token: string) => {
+    return apiCall('GET', '/payments/balance/me', token);
+  },
+
+  getMyTransactions: async (token: string, skip = 0, take = 10) => {
+    return apiCall('GET', `/payments/transactions/me?skip=${skip}&take=${take}`, token);
+  },
+
+  getFinancialStats: async (token: string) => {
+    return apiCall('GET', '/payments/stats/me', token);
+  },
+
+  createWithdrawal: async (token: string, data: { amount: number; pix_key: string }) => {
+    return apiCall('POST', '/payments/withdrawals', token, data);
+  },
+
+  listWithdrawals: async (token: string, skip = 0, take = 5) => {
+    return apiCall('GET', `/payments/withdrawals?skip=${skip}&take=${take}`, token);
+  },
+};

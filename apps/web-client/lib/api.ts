@@ -130,3 +130,9 @@ export const reviewsApi = {
   create: (data: unknown, token: string) => api.post('/reviews', data, { token }),
   getByProfessional: (userId: string) => api.get(`/reviews/professional/${userId}`),
 };
+
+// Payments endpoints
+export const paymentsApi = {
+  create: (data: unknown, token: string) => api.post('/payments', data, { token }),
+  getById: (id: string, token: string) => api.get(`/payments/${id}`, { token }),
+};

@@ -1,4 +1,4 @@
-import { JobStatus, ProLevel, RiskLevel, Role, UserStatus, QuoteStatus } from '@casa-segura/database';
+import { JobStatus, ProLevel, RiskLevel, Role, UserStatus, QuoteStatus, PaymentStatus, PaymentMethod, TransactionType, WithdrawalStatus } from '@casa-segura/database';
 
 export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   CREATED: 'Criado',
@@ -137,3 +137,66 @@ export const APP_CONFIG = {
   cpfRegex: /^\d{11}$/,
   cepRegex: /^\d{8}$/,
 } as const;
+
+// Payment Configuration
+export const PAYMENT_CONFIG = {
+  platformFeePercentage: 0.20, // 20% platform commission
+  professionalPercentage: 0.80, // 80% to professional
+  escrowHoldHours: 48, // Hold payment for 48h after job completion
+  minWithdrawalAmount: 5000, // R$ 50.00 minimum withdrawal (in centavos)
+  pixExpirationMinutes: 30, // PIX QR code valid for 30 minutes
+  maxInstallments: 12, // Maximum credit card installments
+} as const;
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  PENDING: 'Pendente',
+  PROCESSING: 'Processando',
+  COMPLETED: 'Concluído',
+  FAILED: 'Falhou',
+  REFUNDED: 'Reembolsado',
+  PARTIALLY_REFUNDED: 'Parcialmente Reembolsado',
+  CANCELLED: 'Cancelado',
+};
+
+export const PAYMENT_STATUS_COLORS: Record<PaymentStatus, string> = {
+  PENDING: 'bg-yellow-100 text-yellow-800',
+  PROCESSING: 'bg-blue-100 text-blue-800',
+  COMPLETED: 'bg-green-100 text-green-800',
+  FAILED: 'bg-red-100 text-red-800',
+  REFUNDED: 'bg-purple-100 text-purple-800',
+  PARTIALLY_REFUNDED: 'bg-purple-100 text-purple-800',
+  CANCELLED: 'bg-gray-100 text-gray-800',
+};
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  PIX: 'PIX',
+  CREDIT_CARD: 'Cartão de Crédito',
+  DEBIT_CARD: 'Cartão de Débito',
+};
+
+export const WITHDRAWAL_STATUS_LABELS: Record<WithdrawalStatus, string> = {
+  PENDING: 'Aguardando Aprovação',
+  APPROVED: 'Aprovado',
+  PROCESSING: 'Processando',
+  COMPLETED: 'Concluído',
+  REJECTED: 'Rejeitado',
+  FAILED: 'Falhou',
+};
+
+export const WITHDRAWAL_STATUS_COLORS: Record<WithdrawalStatus, string> = {
+  PENDING: 'bg-yellow-100 text-yellow-800',
+  APPROVED: 'bg-blue-100 text-blue-800',
+  PROCESSING: 'bg-indigo-100 text-indigo-800',
+  COMPLETED: 'bg-green-100 text-green-800',
+  REJECTED: 'bg-red-100 text-red-800',
+  FAILED: 'bg-red-100 text-red-800',
+};
+
+export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
+  PAYMENT: 'Pagamento',
+  SPLIT_PROFESSIONAL: 'Recebimento',
+  SPLIT_PLATFORM: 'Taxa Plataforma',
+  REFUND: 'Reembolso',
+  WITHDRAWAL: 'Saque',
+  FEE: 'Taxa',
+};

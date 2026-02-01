@@ -19,6 +19,10 @@ export {
   RiskLevel,
   JobStatus,
   QuoteStatus,
+  PaymentStatus,
+  PaymentMethod,
+  TransactionType,
+  WithdrawalStatus,
 } from '@casa-segura/database';
 
 // API Response types
@@ -141,4 +145,54 @@ export interface DashboardStats {
   completedJobs: number;
   revenue: number;
   pendingJobs: number;
+}
+
+// Payment types
+export interface CreatePaymentDto {
+  job_id: string;
+  method: 'PIX' | 'CREDIT_CARD' | 'DEBIT_CARD';
+  installments?: number;
+}
+
+export interface PaymentResponse {
+  id: string;
+  status: string;
+  amount: number;
+  method: string;
+  qr_code?: string;
+  qr_code_base64?: string;
+  expires_at?: string;
+  gateway_payment_id?: string;
+}
+
+export interface CreateWithdrawalDto {
+  amount: number;
+  pix_key: string;
+}
+
+export interface WithdrawalResponse {
+  id: string;
+  amount: number;
+  pix_key: string;
+  status: string;
+  requested_at: string;
+}
+
+export interface CreateRefundDto {
+  payment_id: string;
+  amount: number;
+  reason: string;
+}
+
+export interface FinancialStats {
+  available: number;
+  held: number;
+  total_earned: number;
+  total_withdrawn: number;
+  pending_withdrawals: number;
+  transactions_last_30_days: Array<{
+    date: string;
+    amount: number;
+    type: string;
+  }>;
 }
