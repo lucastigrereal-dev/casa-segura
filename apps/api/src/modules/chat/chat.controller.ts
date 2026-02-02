@@ -8,7 +8,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ChatService } from './chat.service';
 import { MessageType } from '@prisma/client';
 
@@ -21,7 +21,7 @@ export class ChatController {
    * Get all conversations for current user
    */
   @Get('conversations')
-  async getConversations(@Request() req) {
+  async getConversations(@Request() req: any) {
     return this.chatService.findMyConversations(req.user.userId);
   }
 
@@ -29,7 +29,7 @@ export class ChatController {
    * Get a specific conversation
    */
   @Get('conversations/:id')
-  async getConversation(@Param('id') id: string, @Request() req) {
+  async getConversation(@Param('id') id: string, @Request() req: any) {
     return this.chatService.findConversationById(id, req.user.userId);
   }
 
@@ -37,7 +37,7 @@ export class ChatController {
    * Get conversation by job ID
    */
   @Get('conversations/job/:jobId')
-  async getConversationByJob(@Param('jobId') jobId: string, @Request() req) {
+  async getConversationByJob(@Param('jobId') jobId: string, @Request() req: any) {
     return this.chatService.findConversationByJobId(jobId, req.user.userId);
   }
 
@@ -49,7 +49,7 @@ export class ChatController {
     @Param('id') conversationId: string,
     @Query('limit') limit: string,
     @Query('before') before: string,
-    @Request() req,
+    @Request() req: any,
   ) {
     return this.chatService.getMessages(
       conversationId,
@@ -72,7 +72,7 @@ export class ChatController {
       fileName?: string;
       fileSize?: number;
     },
-    @Request() req,
+    @Request() req: any,
   ) {
     return this.chatService.createMessage({
       conversationId,
@@ -85,7 +85,7 @@ export class ChatController {
    * Mark messages as read
    */
   @Post('conversations/:id/read')
-  async markAsRead(@Param('id') conversationId: string, @Request() req) {
+  async markAsRead(@Param('id') conversationId: string, @Request() req: any) {
     return this.chatService.markAsRead(conversationId, req.user.userId);
   }
 
@@ -93,7 +93,7 @@ export class ChatController {
    * Get unread count
    */
   @Get('unread-count')
-  async getUnreadCount(@Request() req) {
+  async getUnreadCount(@Request() req: any) {
     const count = await this.chatService.getUnreadCount(req.user.userId);
     return { count };
   }

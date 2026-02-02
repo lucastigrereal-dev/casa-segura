@@ -8,7 +8,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
 
 @Controller('notifications')
@@ -24,7 +24,7 @@ export class NotificationsController {
     @Query('limit') limit: string,
     @Query('offset') offset: string,
     @Query('unreadOnly') unreadOnly: string,
-    @Request() req,
+    @Request() req: any,
   ) {
     return this.notificationsService.findByUser(
       req.user.userId,
@@ -38,7 +38,7 @@ export class NotificationsController {
    * Get unread count
    */
   @Get('unread-count')
-  async getUnreadCount(@Request() req) {
+  async getUnreadCount(@Request() req: any) {
     const count = await this.notificationsService.getUnreadCount(req.user.userId);
     return { count };
   }
@@ -47,7 +47,7 @@ export class NotificationsController {
    * Mark notification as read
    */
   @Post(':id/read')
-  async markAsRead(@Param('id') id: string, @Request() req) {
+  async markAsRead(@Param('id') id: string, @Request() req: any) {
     return this.notificationsService.markAsRead(id, req.user.userId);
   }
 
@@ -55,7 +55,7 @@ export class NotificationsController {
    * Mark all notifications as read
    */
   @Post('read-all')
-  async markAllAsRead(@Request() req) {
+  async markAllAsRead(@Request() req: any) {
     return this.notificationsService.markAllAsRead(req.user.userId);
   }
 
@@ -63,7 +63,7 @@ export class NotificationsController {
    * Mark notification as clicked
    */
   @Post(':id/click')
-  async markAsClicked(@Param('id') id: string, @Request() req) {
+  async markAsClicked(@Param('id') id: string, @Request() req: any) {
     return this.notificationsService.markAsClicked(id, req.user.userId);
   }
 
@@ -71,7 +71,7 @@ export class NotificationsController {
    * Delete a notification
    */
   @Delete(':id')
-  async deleteNotification(@Param('id') id: string, @Request() req) {
+  async deleteNotification(@Param('id') id: string, @Request() req: any) {
     return this.notificationsService.deleteNotification(id, req.user.userId);
   }
 }

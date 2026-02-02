@@ -26,7 +26,7 @@ interface AuthenticatedSocket extends Socket {
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   // Track connected users
   private connectedUsers = new Map<string, string>(); // userId -> socketId
@@ -90,6 +90,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     try {
+      if (!client.userId) {
+        return { success: false, error: 'Unauthorized' };
+      }
+
       // Verify access to conversation
       const conversation = await this.chatService.findConversationById(
         data.conversationId,
@@ -100,7 +104,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.join(`conversation:${data.conversationId}`);
 
       return { success: true, conversation };
-    } catch (error) {
+    } catch (error: any) {
       return { success: false, error: error.message };
     }
   }
@@ -133,6 +137,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     try {
+      if (!client.userId) {
+        return { success: false, error: 'Unauthorized' };
+      }
+
       // Create message
       const message = await this.chatService.createMessage({
         conversationId: data.conversationId,
@@ -175,7 +183,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       return { success: true, message };
-    } catch (error) {
+    } catch (error: any) {
       return { success: false, error: error.message };
     }
   }
@@ -225,6 +233,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     try {
+      if (!client.userId) {
+        return { success: false, error: 'Unauthorized' };
+      }
+
       await this.chatService.markAsRead(data.conversationId, client.userId);
 
       // Notify sender that messages were read
@@ -238,7 +250,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('unread_count', { count: unreadCount });
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       return { success: false, error: error.message };
     }
   }
