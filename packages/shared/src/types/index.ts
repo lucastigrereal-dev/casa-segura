@@ -23,7 +23,12 @@ export {
   PaymentMethod,
   TransactionType,
   WithdrawalStatus,
+  MessageType,
+  NotificationType,
 } from '@casa-segura/database';
+
+// Chat & Notifications
+export * from './chat';
 
 // API Response types
 export interface ApiResponse<T = unknown> {

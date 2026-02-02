@@ -89,6 +89,12 @@ model User {
   transactions         Transaction[]
   balance              Balance?
 
+  // Chat & Notifications relations
+  conversations_as_client   Conversation[] @relation("ClientConversations")
+  conversations_as_pro      Conversation[] @relation("ProfessionalConversations")
+  messages_sent             Message[]      @relation("MessagesSent")
+  notifications             Notification[] @relation("Notifications")
+
   @@map("users")
 }
 
@@ -239,6 +245,9 @@ model Job {
   payment      Payment?
   transactions Transaction[]
 
+  // Chat relation
+  conversation Conversation?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -342,6 +351,26 @@ enum WithdrawalStatus {
   COMPLETED
   REJECTED
   FAILED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum NotificationType {
+  NEW_JOB
+  NEW_QUOTE
+  QUOTE_ACCEPTED
+  QUOTE_REJECTED
+  JOB_STARTED
+  JOB_COMPLETED
+  PAYMENT_RECEIVED
+  NEW_MESSAGE
+  NEW_REVIEW
+  SYSTEM
 }
 
 // ============================================
@@ -475,4 +504,79 @@ model Balance {
   updated_at      DateTime @updatedAt
 
   @@map("balances")
+}
+
+// ============================================
+// CHAT & NOTIFICATIONS SYSTEM
+// ============================================
+
+model Conversation {
+  id      String @id @default(uuid())
+  job_id  String @unique
+  job     Job    @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  client_id       String
+  client          User   @relation("ClientConversations", fields: [client_id], references: [id])
+
+  professional_id String?
+  professional    User?  @relation("ProfessionalConversations", fields: [professional_id], references: [id])
+
+  last_message_at DateTime?
+  last_message_preview String?
+
+  messages Message[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([client_id])
+  @@index([professional_id])
+  @@map("conversations")
+}
+
+model Message {
+  id              String      @id @default(uuid())
+  conversation_id String
+  conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  sender_id String
+  sender    User   @relation("MessagesSent", fields: [sender_id], references: [id])
+
+  type    MessageType @default(TEXT)
+  content String      @db.Text
+
+  file_url  String?
+  file_name String?
+  file_size Int?
+
+  read_at DateTime?
+  created_at DateTime @default(now())
+
+  @@index([conversation_id, created_at])
+  @@index([sender_id])
+  @@map("messages")
+}
+
+model Notification {
+  id      String           @id @default(uuid())
+  user_id String
+  user    User             @relation("Notifications", fields: [user_id], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  title   String
+  message String           @db.Text
+
+  job_id   String?
+  quote_id String?
+
+  data Json?
+
+  read_at    DateTime?
+  clicked_at DateTime?
+
+  created_at DateTime @default(now())
+
+  @@index([user_id, read_at])
+  @@index([user_id, created_at])
+  @@map("notifications")
 }

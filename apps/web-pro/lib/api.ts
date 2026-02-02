@@ -221,3 +221,61 @@ export const paymentsApi = {
     return apiCall('GET', `/payments/withdrawals?skip=${skip}&take=${take}`, token);
   },
 };
+
+export const chatApi = {
+  getConversations: async (token: string) => {
+    return apiCall('GET', '/chat/conversations', token);
+  },
+
+  getConversation: async (token: string, id: string) => {
+    return apiCall('GET', `/chat/conversations/${id}`, token);
+  },
+
+  getConversationByJob: async (token: string, jobId: string) => {
+    return apiCall('GET', `/chat/conversations/job/${jobId}`, token);
+  },
+
+  getMessages: async (token: string, conversationId: string, limit = 50, before?: string) => {
+    const query = before ? `?limit=${limit}&before=${before}` : `?limit=${limit}`;
+    return apiCall('GET', `/chat/conversations/${conversationId}/messages${query}`, token);
+  },
+
+  sendMessage: async (token: string, conversationId: string, data: { content: string; type?: string }) => {
+    return apiCall('POST', `/chat/conversations/${conversationId}/messages`, token, data);
+  },
+
+  markAsRead: async (token: string, conversationId: string) => {
+    return apiCall('POST', `/chat/conversations/${conversationId}/read`, token);
+  },
+
+  getUnreadCount: async (token: string) => {
+    return apiCall('GET', '/chat/unread-count', token);
+  },
+};
+
+export const notificationsApi = {
+  getAll: async (token: string, limit = 20, offset = 0, unreadOnly = false) => {
+    const query = `?limit=${limit}&offset=${offset}&unreadOnly=${unreadOnly}`;
+    return apiCall('GET', `/notifications${query}`, token);
+  },
+
+  getUnreadCount: async (token: string) => {
+    return apiCall('GET', '/notifications/unread-count', token);
+  },
+
+  markAsRead: async (token: string, id: string) => {
+    return apiCall('POST', `/notifications/${id}/read`, token);
+  },
+
+  markAllAsRead: async (token: string) => {
+    return apiCall('POST', '/notifications/read-all', token);
+  },
+
+  markAsClicked: async (token: string, id: string) => {
+    return apiCall('POST', `/notifications/${id}/click`, token);
+  },
+
+  delete: async (token: string, id: string) => {
+    return apiCall('DELETE', `/notifications/${id}`, token);
+  },
+};

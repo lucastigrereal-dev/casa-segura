@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Avatar } from '@/components/ui';
 import { useAuth } from '@/contexts/auth-context';
 import { Menu, X, User, FileText, Plus, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { NotificationsDropdown } from '@/components/notifications';
 
 export function Header() {
   const router = useRouter();
@@ -62,6 +63,9 @@ export function Header() {
                   <FileText className="h-4 w-4" />
                   Meus Chamados
                 </Link>
+
+                {/* Notifications Dropdown */}
+                <NotificationsDropdown />
 
                 {/* User Dropdown */}
                 <div className="relative" ref={dropdownRef}>

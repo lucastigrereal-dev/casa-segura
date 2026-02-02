@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentGatewayService } from './services/payment-gateway.service';
 import { PaymentStatus, JobStatus, Role, WithdrawalStatus, TransactionType } from '@casa-segura/database';
@@ -6,6 +6,7 @@ import { PAYMENT_CONFIG } from '@casa-segura/shared';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { CreateRefundDto } from './dto/create-refund.dto';
 import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class PaymentsService {
@@ -14,6 +15,8 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: PaymentGatewayService,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createPayment(data: CreatePaymentDto, userId: string) {
@@ -282,6 +285,13 @@ export class PaymentsService {
         description: `Pagamento recebido - Job ${payment.job.code}`,
       },
     });
+
+    // Send notification to professional
+    try {
+      await this.notificationsService.notifyPaymentReceived(jobId, professionalSplit.amount);
+    } catch (error) {
+      this.logger.error('Failed to send payment notification:', error);
+    }
 
     this.logger.log(`Escrow released for job ${jobId}: R$${professionalSplit.amount / 100} to professional`);
   }

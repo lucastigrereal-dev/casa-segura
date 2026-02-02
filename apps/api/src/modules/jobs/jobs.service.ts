@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JobStatus, Role, Prisma } from '@casa-segura/database';
 import { generateJobCode } from '@casa-segura/shared';
 import { PaymentsService } from '../payments/payments.service';
+import { ChatService } from '../chat/chat.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface CreateJobData {
   client_id: string;
@@ -20,6 +22,10 @@ export class JobsService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => PaymentsService))
     private readonly paymentsService: PaymentsService,
+    @Inject(forwardRef(() => ChatService))
+    private readonly chatService: ChatService,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(data: CreateJobData) {
@@ -31,7 +37,7 @@ export class JobsService {
       throw new NotFoundException('Missão não encontrada');
     }
 
-    return this.prisma.job.create({
+    const job = await this.prisma.job.create({
       data: {
         code: generateJobCode(),
         client_id: data.client_id,
@@ -50,6 +56,19 @@ export class JobsService {
         address: true,
       },
     });
+
+    // Create conversation for the job
+    try {
+      await this.chatService.createConversation({
+        jobId: job.id,
+        clientId: job.client_id,
+      });
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+      // Don't fail job creation if conversation creation fails
+    }
+
+    return job;
   }
 
   async findById(id: string) {
@@ -166,13 +185,23 @@ export class JobsService {
   }
 
   async assignPro(jobId: string, proId: string) {
-    return this.prisma.job.update({
+    const job = await this.prisma.job.update({
       where: { id: jobId },
       data: {
         pro_id: proId,
         status: JobStatus.ASSIGNED,
       },
     });
+
+    // Assign professional to conversation
+    try {
+      await this.chatService.assignProfessionalToConversation(jobId, proId);
+    } catch (error) {
+      console.error('Failed to assign professional to conversation:', error);
+      // Don't fail the assignment if conversation update fails
+    }
+
+    return job;
   }
 
   async addPhotosAfter(id: string, photos: string[]) {
@@ -301,7 +330,7 @@ export class JobsService {
       throw new ForbiddenException('Job não está no status correto para iniciar');
     }
 
-    return this.prisma.job.update({
+    const updatedJob = await this.prisma.job.update({
       where: { id: jobId },
       data: {
         status: JobStatus.IN_PROGRESS,
@@ -314,6 +343,15 @@ export class JobsService {
         address: true,
       },
     });
+
+    // Send notification to client
+    try {
+      await this.notificationsService.notifyJobStarted(jobId);
+    } catch (error) {
+      console.error('Failed to send job started notification:', error);
+    }
+
+    return updatedJob;
   }
 
   async completeJob(jobId: string, professionalId: string, data: {
@@ -331,7 +369,7 @@ export class JobsService {
       throw new ForbiddenException('Job não está em andamento');
     }
 
-    return this.prisma.job.update({
+    const updatedJob = await this.prisma.job.update({
       where: { id: jobId },
       data: {
         status: JobStatus.PENDING_APPROVAL,
@@ -346,6 +384,15 @@ export class JobsService {
         address: true,
       },
     });
+
+    // Send notification to client
+    try {
+      await this.notificationsService.notifyJobCompleted(jobId);
+    } catch (error) {
+      console.error('Failed to send job completed notification:', error);
+    }
+
+    return updatedJob;
   }
 
   async findMyProJobs(professionalId: string, params?: {

@@ -1,6 +1,7 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JobStatus, QuoteStatus } from '@casa-segura/database';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface CreateQuoteDto {
   job_id: string;
@@ -18,7 +19,11 @@ export interface UpdateQuoteDto {
 
 @Injectable()
 export class QuotesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => NotificationsService))
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(data: CreateQuoteDto) {
     // Verify job exists
@@ -52,6 +57,13 @@ export class QuotesService {
         where: { id: data.job_id },
         data: { status: JobStatus.QUOTE_SENT },
       });
+    }
+
+    // Send notification to client
+    try {
+      await this.notificationsService.notifyNewQuote(quote.id);
+    } catch (error) {
+      console.error('Failed to send new quote notification:', error);
     }
 
     return quote;
@@ -163,6 +175,13 @@ export class QuotesService {
         responded_at: new Date(),
       },
     });
+
+    // Send notification to professional
+    try {
+      await this.notificationsService.notifyQuoteAccepted(quoteId);
+    } catch (error) {
+      console.error('Failed to send quote accepted notification:', error);
+    }
 
     return quote;
   }

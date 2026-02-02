@@ -241,3 +241,35 @@ export const paymentsApi = {
     api.patch(`/payments/withdrawals/${id}/approve`, data),
   getFinancialStats: () => api.get<any>('/payments/stats/platform'),
 };
+
+export const chatApi = {
+  getConversations: (token: string) => api.get('/chat/conversations', { token }),
+  getConversation: (id: string, token: string) => api.get(`/chat/conversations/${id}`, { token }),
+  getConversationByJob: (jobId: string, token: string) =>
+    api.get(`/chat/conversations/job/${jobId}`, { token }),
+  getMessages: (conversationId: string, token: string, limit = 50, before?: string) => {
+    const query = before ? `?limit=${limit}&before=${before}` : `?limit=${limit}`;
+    return api.get(`/chat/conversations/${conversationId}/messages${query}`, { token });
+  },
+  sendMessage: (conversationId: string, data: { content: string; type?: string }, token: string) =>
+    api.post(`/chat/conversations/${conversationId}/messages`, data, { token }),
+  markAsRead: (conversationId: string, token: string) =>
+    api.post(`/chat/conversations/${conversationId}/read`, {}, { token }),
+  getUnreadCount: (token: string) => api.get('/chat/unread-count', { token }),
+};
+
+export const notificationsApi = {
+  getAll: (token: string, limit = 20, offset = 0, unreadOnly = false) => {
+    const query = `?limit=${limit}&offset=${offset}&unreadOnly=${unreadOnly}`;
+    return api.get(`/notifications${query}`, { token });
+  },
+  getUnreadCount: (token: string) => api.get('/notifications/unread-count', { token }),
+  markAsRead: (id: string, token: string) =>
+    api.post(`/notifications/${id}/read`, {}, { token }),
+  markAllAsRead: (token: string) =>
+    api.post('/notifications/read-all', {}, { token }),
+  markAsClicked: (id: string, token: string) =>
+    api.post(`/notifications/${id}/click`, {}, { token }),
+  delete: (id: string, token: string) =>
+    api.delete(`/notifications/${id}`, { token }),
+};

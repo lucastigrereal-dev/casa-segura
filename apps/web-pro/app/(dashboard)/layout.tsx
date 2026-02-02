@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BarChart3, FileText, Home, LogOut, Menu, Settings, User, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { NotificationsDropdown } from '@/components/notifications';
 
 export default function DashboardLayout({
   children,
@@ -69,8 +70,11 @@ export default function DashboardLayout({
               <Menu size={24} />
             </button>
             <div className="flex-1"></div>
-            <div className="text-gray-400 text-sm">
-              👋 Bem-vindo, {user?.name || 'Profissional'}
+            <div className="flex items-center gap-4">
+              <NotificationsDropdown />
+              <div className="text-gray-400 text-sm">
+                👋 Bem-vindo, {user?.name || 'Profissional'}
+              </div>
             </div>
           </header>
 
