@@ -5,6 +5,7 @@ import { generateJobCode } from '@casa-segura/shared';
 import { PaymentsService } from '../payments/payments.service';
 import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ReferralsService } from '../referrals/referrals.service';
 
 interface CreateJobData {
   client_id: string;
@@ -26,6 +27,8 @@ export class JobsService {
     private readonly chatService: ChatService,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
+    @Inject(forwardRef(() => ReferralsService))
+    private readonly referralsService: ReferralsService,
   ) {}
 
   async create(data: CreateJobData) {
@@ -490,6 +493,20 @@ export class JobsService {
 
     // Release payment escrow (80% to professional)
     await this.paymentsService.releaseEscrow(jobId);
+
+    // Complete referral for both client and professional (1st job bonus)
+    try {
+      // Complete for client (if this was their 1st job)
+      await this.referralsService.completeReferral(job.client_id);
+
+      // Complete for professional (if this was their 1st job)
+      if (job.pro_id) {
+        await this.referralsService.completeReferral(job.pro_id);
+      }
+    } catch (error) {
+      console.error('Failed to complete referral:', error);
+      // Don't fail job approval if referral fails
+    }
 
     return updated;
   }

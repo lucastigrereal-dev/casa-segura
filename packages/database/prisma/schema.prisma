@@ -95,6 +95,13 @@ model User {
   messages_sent             Message[]      @relation("MessagesSent")
   notifications             Notification[] @relation("Notifications")
 
+  // Referral Program relations
+  referral_codes         ReferralCode[]      @relation("ReferralCodes")
+  referrals_made         ReferralUse[]       @relation("ReferralsMade")
+  referrals_received     ReferralUse[]       @relation("ReferralsReceived")
+  credits                UserCredit?         @relation("UserCredits")
+  credit_transactions    CreditTransaction[] @relation("CreditTransactions")
+
   @@map("users")
 }
 
@@ -579,4 +586,96 @@ model Notification {
   @@index([user_id, read_at])
   @@index([user_id, created_at])
   @@map("notifications")
+}
+
+// ============================================
+// REFERRAL PROGRAM
+// ============================================
+
+model ReferralCode {
+  id           String   @id @default(uuid())
+  user_id      String
+  user         User     @relation("ReferralCodes", fields: [user_id], references: [id], onDelete: Cascade)
+
+  code         String   @unique
+  bonus_amount Int      @default(5000) // R$ 50 em centavos
+  max_uses     Int      @default(999)
+  times_used   Int      @default(0)
+
+  is_active    Boolean  @default(true)
+  expires_at   DateTime?
+
+  uses         ReferralUse[]
+
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@index([user_id])
+  @@index([code])
+  @@map("referral_codes")
+}
+
+model ReferralUse {
+  id            String       @id @default(uuid())
+
+  code          String
+  referral_code ReferralCode @relation(fields: [code], references: [code], onDelete: Cascade)
+
+  referrer_id   String
+  referrer      User         @relation("ReferralsMade", fields: [referrer_id], references: [id])
+
+  referred_id   String
+  referred      User         @relation("ReferralsReceived", fields: [referred_id], references: [id])
+
+  bonus_amount  Int          // Valor do bônus dado
+  status        String       @default("PENDING") // PENDING, COMPLETED, CANCELLED
+
+  completed_at  DateTime?    // Quando o bônus foi pago
+
+  created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
+
+  @@index([referrer_id])
+  @@index([referred_id])
+  @@index([code])
+  @@map("referral_uses")
+}
+
+// ============================================
+// CREDITS SYSTEM
+// ============================================
+
+model UserCredit {
+  id         String   @id @default(uuid())
+  user_id    String
+  user       User     @relation("UserCredits", fields: [user_id], references: [id], onDelete: Cascade)
+
+  amount     Int      @default(0) // Saldo em centavos
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([user_id])
+  @@map("user_credits")
+}
+
+model CreditTransaction {
+  id          String   @id @default(uuid())
+  user_id     String
+  user        User     @relation("CreditTransactions", fields: [user_id], references: [id], onDelete: Cascade)
+
+  amount      Int      // Positivo = crédito, Negativo = débito
+  type        String   // REFERRAL_BONUS, FIRST_JOB_FREE, PURCHASE, REFUND, etc
+  description String
+
+  job_id      String?
+  referral_id String?
+
+  balance_after Int    // Saldo após transação
+
+  created_at  DateTime @default(now())
+
+  @@index([user_id])
+  @@index([created_at])
+  @@map("credit_transactions")
 }

@@ -67,7 +67,7 @@ export const api = new ApiClient(API_URL);
 export const authApi = {
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data),
-  register: (data: { email: string; phone: string; password: string; name: string }) =>
+  register: (data: { email: string; phone: string; password: string; name: string; referral_code?: string }) =>
     api.post('/auth/register', data),
   getMe: (token: string) =>
     api.get('/auth/me', { token }),
@@ -169,4 +169,22 @@ export const notificationsApi = {
     api.post(`/notifications/${id}/click`, {}, { token }),
   delete: (id: string, token: string) =>
     api.delete(`/notifications/${id}`, { token }),
+};
+
+// Referrals endpoints
+export const referralsApi = {
+  getMyCode: (token: string) => api.get('/referrals/my-code', { token }),
+  getMyStats: (token: string) => api.get('/referrals/my-stats', { token }),
+  validateCode: (code: string) => api.post('/referrals/validate', { code }),
+  applyCode: (code: string, token: string) =>
+    api.post('/referrals/apply', { code }, { token }),
+};
+
+// Credits endpoints
+export const creditsApi = {
+  getBalance: (token: string) => api.get('/referrals/credits/balance', { token }),
+  getTransactions: (token: string, page = 1, limit = 20) =>
+    api.get(`/referrals/credits/transactions?page=${page}&limit=${limit}`, { token }),
+  applyToJob: (jobId: string, jobAmount: number, token: string) =>
+    api.post('/referrals/credits/apply-to-job', { job_id: jobId, job_amount: jobAmount }, { token }),
 };

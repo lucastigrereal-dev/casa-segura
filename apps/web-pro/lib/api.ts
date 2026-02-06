@@ -1,281 +1,190 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333/api';
 
-interface LoginResponse {
-  data: {
-    user: {
-      id: string;
-      email: string;
-      name: string;
-      phone: string;
-      role: string;
-      avatar_url?: string;
-      professional?: {
-        id: string;
-        level: string;
-        is_available: boolean;
-        rating_avg: number;
-        cpf_verified: boolean;
-        selfie_verified: boolean;
-        address_verified: boolean;
-      };
-    };
-    accessToken: string;
-    refreshToken: string;
-  };
+interface FetchOptions extends RequestInit {
+  token?: string;
 }
 
-interface RegisterResponse {
-  data: {
-    user: {
-      id: string;
-      email: string;
-      name: string;
-      phone: string;
-      role: string;
+class ApiClient {
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private async request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+    const { token, headers: customHeaders, ...fetchOptions } = options;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...customHeaders,
     };
-    accessToken: string;
-    refreshToken: string;
-  };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Request failed' }));
+      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async get<T>(endpoint: string, options?: FetchOptions): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  }
+
+  async post<T>(endpoint: string, data?: unknown, options?: FetchOptions): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async patch<T>(endpoint: string, data?: unknown, options?: FetchOptions): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete<T>(endpoint: string, options?: FetchOptions): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
+  }
 }
 
-const apiCall = async (
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
-  endpoint: string,
-  token?: string,
-  body?: unknown,
-) => {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
+export const api = new ApiClient(API_URL);
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const options: RequestInit = {
-    method,
-    headers,
-  };
-
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(`${API_URL}${endpoint}`, options);
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `API error: ${response.status}`);
-  }
-
-  return response.json();
-};
-
+// Auth endpoints
 export const authApi = {
-  login: async (email: string, password: string) => {
-    return apiCall('POST', '/auth/login', undefined, {
-      email,
-      password,
-    }) as Promise<LoginResponse>;
-  },
-
-  register: async (data: {
-    email: string;
-    password: string;
-    name: string;
-    phone: string;
-  }) => {
-    return apiCall('POST', '/auth/register', undefined, {
-      ...data,
-      role: 'PROFESSIONAL',
-    }) as Promise<RegisterResponse>;
-  },
-
-  getMe: async (token: string) => {
-    return apiCall('GET', '/auth/me', token) as Promise<{
-      data: {
-        id: string;
-        email: string;
-        name: string;
-        phone: string;
-        role: string;
-        avatar_url?: string;
-        professional?: {
-          id: string;
-          level: string;
-          is_available: boolean;
-          rating_avg: number;
-          cpf_verified: boolean;
-          selfie_verified: boolean;
-          address_verified: boolean;
-        };
-      };
-    }>;
-  },
-
-  refresh: async (refreshToken: string) => {
-    return apiCall('POST', '/auth/refresh', undefined, {
-      refreshToken,
-    }) as Promise<{
-      data: {
-        accessToken: string;
-        refreshToken: string;
-      };
-    }>;
-  },
+  login: (data: { email: string; password: string }) =>
+    api.post('/auth/login', data),
+  register: (data: { email: string; phone: string; password: string; name: string; referral_code?: string }) =>
+    api.post('/auth/register', data),
+  getMe: (token: string) =>
+    api.get('/auth/me', { token }),
+  refresh: (refreshToken: string) =>
+    api.post('/auth/refresh', { refreshToken }),
 };
 
-export const professionalsApi = {
-  getMyStats: async (token: string) => {
-    return apiCall('GET', '/professionals/me/stats', token);
-  },
-
-  getMyEarnings: async (token: string, skip = 0, take = 20) => {
-    return apiCall('GET', `/professionals/me/earnings?skip=${skip}&take=${take}`, token);
-  },
-
-  toggleAvailability: async (token: string, isAvailable: boolean) => {
-    return apiCall('PATCH', '/professionals/me/availability', token, {
-      isAvailable,
-    });
-  },
-
-  updateRadius: async (token: string, work_radius_km: number) => {
-    return apiCall('PATCH', '/professionals/me/radius', token, {
-      work_radius_km,
-    });
-  },
+// Categories endpoints
+export const categoriesApi = {
+  list: () => api.get('/categories'),
+  getById: (id: string) => api.get(`/categories/${id}`),
+  getBySlug: (slug: string) => api.get(`/categories/slug/${slug}`),
 };
 
+// Missions endpoints
+export const missionsApi = {
+  list: (categoryId?: string) =>
+    api.get(`/missions${categoryId ? `?categoryId=${categoryId}` : ''}`),
+  getById: (id: string) => api.get(`/missions/${id}`),
+};
+
+// Jobs endpoints
 export const jobsApi = {
-  getAvailable: async (token: string, skip = 0, take = 20) => {
-    return apiCall('GET', `/jobs/available?skip=${skip}&take=${take}`, token);
-  },
-
-  getMyJobs: async (token: string, skip = 0, take = 20, status?: string) => {
-    const query = new URLSearchParams({ skip: String(skip), take: String(take) });
-    if (status) query.append('status', status);
-    return apiCall('GET', `/jobs/my-pro-jobs?${query}`, token);
-  },
-
-  getJobById: async (token: string, id: string) => {
-    return apiCall('GET', `/jobs/${id}`, token);
-  },
-
-  startJob: async (token: string, jobId: string) => {
-    return apiCall('POST', `/jobs/${jobId}/start`, token);
-  },
-
-  completeJob: async (token: string, jobId: string, photosAfter: string[]) => {
-    return apiCall('POST', `/jobs/${jobId}/complete`, token, {
-      photos_after: photosAfter,
-    });
-  },
+  list: (token: string) => api.get('/jobs/my', { token }),
+  getById: (id: string, token: string) => api.get(`/jobs/${id}`, { token }),
+  getByCode: (code: string, token: string) => api.get(`/jobs/code/${code}`, { token }),
+  create: (data: unknown, token: string) => api.post('/jobs', data, { token }),
+  updateStatus: (id: string, status: string, token: string) =>
+    api.patch(`/jobs/${id}/status`, { status }, { token }),
 };
 
-export const quotesApi = {
-  create: async (token: string, data: {
-    job_id: string;
-    amount: number;
-    notes?: string;
-    available_dates: string[];
-  }) => {
-    return apiCall('POST', '/quotes', token, data);
-  },
-
-  getByJobId: async (token: string, jobId: string) => {
-    return apiCall('GET', `/quotes/job/${jobId}`, token);
-  },
-
-  getMyQuotes: async (token: string) => {
-    return apiCall('GET', '/quotes/my', token);
-  },
-
-  accept: async (token: string, quoteId: string) => {
-    return apiCall('PATCH', `/quotes/${quoteId}/accept`, token);
-  },
-
-  reject: async (token: string, quoteId: string, reason?: string) => {
-    return apiCall('PATCH', `/quotes/${quoteId}/reject`, token, { reason });
-  },
+// Addresses endpoints
+export const addressesApi = {
+  list: (token: string) => api.get('/addresses', { token }),
+  create: (data: unknown, token: string) => api.post('/addresses', data, { token }),
+  update: (id: string, data: unknown, token: string) =>
+    api.patch(`/addresses/${id}`, data, { token }),
+  delete: (id: string, token: string) => api.delete(`/addresses/${id}`, { token }),
+  setDefault: (id: string, token: string) =>
+    api.patch(`/addresses/${id}/default`, {}, { token }),
 };
 
+// Professionals endpoints
+export const professionalsApi = {
+  list: (params?: { categoryId?: string; city?: string; page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.categoryId) searchParams.append('categoryId', params.categoryId);
+    if (params?.city) searchParams.append('city', params.city);
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    const query = searchParams.toString();
+    return api.get(`/professionals${query ? `?${query}` : ''}`);
+  },
+  getById: (id: string) => api.get(`/professionals/${id}`),
+  register: (data: unknown, token: string) => api.post('/professionals/register', data, { token }),
+};
+
+// Reviews endpoints
+export const reviewsApi = {
+  create: (data: unknown, token: string) => api.post('/reviews', data, { token }),
+  getByProfessional: (userId: string) => api.get(`/reviews/professional/${userId}`),
+};
+
+// Payments endpoints
 export const paymentsApi = {
-  getMyBalance: async (token: string) => {
-    return apiCall('GET', '/payments/balance/me', token);
-  },
-
-  getMyTransactions: async (token: string, skip = 0, take = 10) => {
-    return apiCall('GET', `/payments/transactions/me?skip=${skip}&take=${take}`, token);
-  },
-
-  getFinancialStats: async (token: string) => {
-    return apiCall('GET', '/payments/stats/me', token);
-  },
-
-  createWithdrawal: async (token: string, data: { amount: number; pix_key: string }) => {
-    return apiCall('POST', '/payments/withdrawals', token, data);
-  },
-
-  listWithdrawals: async (token: string, skip = 0, take = 5) => {
-    return apiCall('GET', `/payments/withdrawals?skip=${skip}&take=${take}`, token);
-  },
+  create: (data: unknown, token: string) => api.post('/payments', data, { token }),
+  getById: (id: string, token: string) => api.get(`/payments/${id}`, { token }),
 };
 
+// Chat endpoints
 export const chatApi = {
-  getConversations: async (token: string) => {
-    return apiCall('GET', '/chat/conversations', token);
-  },
-
-  getConversation: async (token: string, id: string) => {
-    return apiCall('GET', `/chat/conversations/${id}`, token);
-  },
-
-  getConversationByJob: async (token: string, jobId: string) => {
-    return apiCall('GET', `/chat/conversations/job/${jobId}`, token);
-  },
-
-  getMessages: async (token: string, conversationId: string, limit = 50, before?: string) => {
+  getConversations: (token: string) => api.get('/chat/conversations', { token }),
+  getConversation: (id: string, token: string) => api.get(`/chat/conversations/${id}`, { token }),
+  getConversationByJob: (jobId: string, token: string) =>
+    api.get(`/chat/conversations/job/${jobId}`, { token }),
+  getMessages: (conversationId: string, token: string, limit = 50, before?: string) => {
     const query = before ? `?limit=${limit}&before=${before}` : `?limit=${limit}`;
-    return apiCall('GET', `/chat/conversations/${conversationId}/messages${query}`, token);
+    return api.get(`/chat/conversations/${conversationId}/messages${query}`, { token });
   },
-
-  sendMessage: async (token: string, conversationId: string, data: { content: string; type?: string }) => {
-    return apiCall('POST', `/chat/conversations/${conversationId}/messages`, token, data);
-  },
-
-  markAsRead: async (token: string, conversationId: string) => {
-    return apiCall('POST', `/chat/conversations/${conversationId}/read`, token);
-  },
-
-  getUnreadCount: async (token: string) => {
-    return apiCall('GET', '/chat/unread-count', token);
-  },
+  sendMessage: (conversationId: string, data: { content: string; type?: string }, token: string) =>
+    api.post(`/chat/conversations/${conversationId}/messages`, data, { token }),
+  markAsRead: (conversationId: string, token: string) =>
+    api.post(`/chat/conversations/${conversationId}/read`, {}, { token }),
+  getUnreadCount: (token: string) => api.get('/chat/unread-count', { token }),
 };
 
+// Notifications endpoints
 export const notificationsApi = {
-  getAll: async (token: string, limit = 20, offset = 0, unreadOnly = false) => {
+  getAll: (token: string, limit = 20, offset = 0, unreadOnly = false) => {
     const query = `?limit=${limit}&offset=${offset}&unreadOnly=${unreadOnly}`;
-    return apiCall('GET', `/notifications${query}`, token);
+    return api.get(`/notifications${query}`, { token });
   },
+  getUnreadCount: (token: string) => api.get('/notifications/unread-count', { token }),
+  markAsRead: (id: string, token: string) =>
+    api.post(`/notifications/${id}/read`, {}, { token }),
+  markAllAsRead: (token: string) =>
+    api.post('/notifications/read-all', {}, { token }),
+  markAsClicked: (id: string, token: string) =>
+    api.post(`/notifications/${id}/click`, {}, { token }),
+  delete: (id: string, token: string) =>
+    api.delete(`/notifications/${id}`, { token }),
+};
 
-  getUnreadCount: async (token: string) => {
-    return apiCall('GET', '/notifications/unread-count', token);
-  },
+// Referrals endpoints
+export const referralsApi = {
+  getMyCode: (token: string) => api.get('/referrals/my-code', { token }),
+  getMyStats: (token: string) => api.get('/referrals/my-stats', { token }),
+  validateCode: (code: string) => api.post('/referrals/validate', { code }),
+  applyCode: (code: string, token: string) =>
+    api.post('/referrals/apply', { code }, { token }),
+};
 
-  markAsRead: async (token: string, id: string) => {
-    return apiCall('POST', `/notifications/${id}/read`, token);
-  },
-
-  markAllAsRead: async (token: string) => {
-    return apiCall('POST', '/notifications/read-all', token);
-  },
-
-  markAsClicked: async (token: string, id: string) => {
-    return apiCall('POST', `/notifications/${id}/click`, token);
-  },
-
-  delete: async (token: string, id: string) => {
-    return apiCall('DELETE', `/notifications/${id}`, token);
-  },
+// Credits endpoints
+export const creditsApi = {
+  getBalance: (token: string) => api.get('/referrals/credits/balance', { token }),
+  getTransactions: (token: string, page = 1, limit = 20) =>
+    api.get(`/referrals/credits/transactions?page=${page}&limit=${limit}`, { token }),
+  applyToJob: (jobId: string, jobAmount: number, token: string) =>
+    api.post('/referrals/credits/apply-to-job', { job_id: jobId, job_amount: jobAmount }, { token }),
 };

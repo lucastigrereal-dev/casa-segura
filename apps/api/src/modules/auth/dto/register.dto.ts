@@ -25,4 +25,9 @@ export class RegisterDto {
   @IsOptional()
   @IsIn(['CLIENT', 'PROFESSIONAL'], { message: 'Role inválido' })
   role?: 'CLIENT' | 'PROFESSIONAL';
+
+  @ApiPropertyOptional({ example: 'CASA-LUCAS-ABC123' })
+  @IsOptional()
+  @IsString()
+  referral_code?: string;
 }

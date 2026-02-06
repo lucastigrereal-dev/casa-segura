@@ -3,10 +3,13 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
+import { ReferralsService } from '../referrals/referrals.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { Role, UserStatus } from '@casa-segura/database';
@@ -16,6 +19,8 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    @Inject(forwardRef(() => ReferralsService))
+    private readonly referralsService: ReferralsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -39,6 +44,17 @@ export class AuthService {
       role: (dto.role as Role) || Role.CLIENT,
     });
 
+    // Aplica código de referral se fornecido
+    let referralBonus = null;
+    if (dto.referral_code && this.referralsService) {
+      try {
+        referralBonus = await this.referralsService.applyReferralCode(dto.referral_code, user.id);
+      } catch (error) {
+        // Não falha cadastro se código inválido, apenas não aplica
+        console.warn('Erro ao aplicar código de referral:', error.message);
+      }
+    }
+
     const tokens = this.generateTokens(user.id, user.email, user.role);
 
     return {
@@ -48,6 +64,11 @@ export class AuthService {
         name: user.name,
         role: user.role,
       },
+      referral_bonus: referralBonus ? {
+        bonus_amount: referralBonus.bonus_amount,
+        referrer_name: referralBonus.referrer?.name,
+        message: 'Você ganhou R$ 50 de bônus!',
+      } : null,
       ...tokens,
     };
   }

@@ -4,12 +4,14 @@ import { JobsController } from './jobs.controller';
 import { PaymentsModule } from '../payments/payments.module';
 import { ChatModule } from '../chat/chat.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ReferralsModule } from '../referrals/referrals.module';
 
 @Module({
   imports: [
     forwardRef(() => PaymentsModule),
     forwardRef(() => ChatModule),
     forwardRef(() => NotificationsModule),
+    forwardRef(() => ReferralsModule),
   ],
   controllers: [JobsController],
   providers: [JobsService],

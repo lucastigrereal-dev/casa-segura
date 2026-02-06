@@ -17,6 +17,7 @@ import { ProfessionalServicesModule } from './modules/professional-services/prof
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ReferralsModule } from './modules/referrals/referrals.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -56,6 +57,7 @@ import { HealthController } from './health.controller';
     PaymentsModule,
     ChatModule,
     NotificationsModule,
+    ReferralsModule,
   ],
   controllers: [HealthController],
   providers: [
